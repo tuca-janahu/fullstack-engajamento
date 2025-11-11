@@ -11,6 +11,11 @@ const PORT = process.env.PORT || 3000
 app.use(cors())
 app.use(express.json())
 
+
+app.get("/", (_req, res) => {
+  res.send("✅ API online");
+});
+
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
 // ROTA QUE ENTREGA O JSON DA SPEC

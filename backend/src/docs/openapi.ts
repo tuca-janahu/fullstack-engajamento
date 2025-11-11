@@ -1,11 +1,18 @@
-export const openapiSpec = {
-  openapi: "3.0.3",
-  info: {
-    title: "Engagement Service API",
-    version: "1.0.0",
+export const openapiSpec = (() => {
+  const port = process.env.PORT || 3000;
+  const servers =
+    process.env.NODE_ENV === "production" && process.env.PUBLIC_URL
+      ? [{ url: process.env.PUBLIC_URL, description: "Produção" }]
+      : [{ url: `http://localhost:${port}`, description: "DEV local" }];
+
+  return {
+    openapi: "3.0.3",
+    info: {
+      title: "Engagement Service API",
+      version: "1.0.0",
     description: "API de Engajamento (pontos) – spec mínima",
   },
-  servers: [{ url: "http://localhost:3000", description: "DEV local" }],
+  servers,
   components: {
     securitySchemes: { bearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" } },
     parameters: {
@@ -75,4 +82,6 @@ export const openapiSpec = {
       }
     }
   }
-};
+
+  
+})();
