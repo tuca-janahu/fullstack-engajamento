@@ -3,10 +3,10 @@ import axios from 'axios';
 import 'dotenv/config';
 
 // Pega a URL do .env
-const AUTH_SERVICE_URL = process.env.URL_BAKCEND_CADASTRO;
+const AUTH_SERVICE_URL = process.env.URL_BACKEND_CADASTRO;
 
 if (!AUTH_SERVICE_URL) {
-  throw new Error('Missing environment variable URL_BAKCEND_CADASTRO');
+  throw new Error('Missing environment variable URL_BACKEND_CADASTRO');
 }
 
 export const authMiddleware = (roles: string[]) => 
