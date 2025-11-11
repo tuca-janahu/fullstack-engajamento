@@ -2,7 +2,7 @@ import { Schema, model, Document } from 'mongoose';
 
 export interface IRecentActivity extends Document {
   userId: string;
-  type: 'shop' | 'financing';
+  type_RA: 'shop' | 'financing';
   description: string;
   value: number;
   pointsChange: number;
@@ -15,29 +15,29 @@ const RecentActivitySchema = new Schema<IRecentActivity>({
     required: true, 
     index: true 
   },
-  type: { 
+  type_RA: { 
     type: String, 
-    enum: ['shop', 'financing'], // Origem da atividade
+    enum: ['shop', 'financing'], 
     required: true 
   },
   description: { 
     type: String, 
-    required: true // Ex: "Compra de 'Produto X'"
+    required: true 
   },
   value: { 
     type: Number, 
-    required: true // Valor em R$ da operação
+    required: true
   },
   pointsChange: { 
     type: Number, 
-    required: true // Ex: +150 (ganho) ou -50 (gasto)
+    required: true 
   },
   referenceId: { 
     type: String, 
-    required: true // ID para criar o link no frontend
+    required: true 
   },
 }, { 
-  timestamps: true // Usaremos 'createdAt' para ordenar
+  timestamps: true 
 });
 
 export const RecentActivity = model<IRecentActivity>('RecentActivity', RecentActivitySchema);
