@@ -10,7 +10,7 @@ export const getDashboardData = async (req: Request, res: Response) => {
 
     const activities = await RecentActivity
       .find({ userId: userId })
-      .sort({ createdAt: -1 }) // Mais recentes primeiro
+      .sort({ createdAt: -1 }) 
       .limit(5);
 
     res.status(200).json({
@@ -25,7 +25,7 @@ export const getDashboardData = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    console.error("Erro no getDashboardData:", error); // Adicione um log de erro
+    console.error("Erro no getDashboardData:", error); 
     res.status(500).json({ 
       message: 'Erro interno ao buscar dados do dashboard' 
     });

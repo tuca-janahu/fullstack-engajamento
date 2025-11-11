@@ -6,9 +6,6 @@ import { UserPoints } from '../models/UserPoints';
 import { PointTransaction } from '../models/PointTransaction';
 import { RecentActivity } from '../models/RecentActivity';
 
-// --- MUDANÇA AQUI ---
-// pointsEarned agora é opcional. Vamos ignorar o que o outro time enviar
-// e vamos calcular com base no 'value'.
 const recordActivitySchema = z.object({
   userId: z.string().min(1, 'userId é obrigatório'),
   type: z.enum(['shop', 'financing'] as const, {
@@ -16,13 +13,11 @@ const recordActivitySchema = z.object({
   }),
   description: z.string().min(1, 'description é obrigatória'),
   value: z.number().positive('value (R$) deve ser positivo'),
-  pointsEarned: z.number().min(0).optional(), // <-- MUDANÇA: Tornou-se opcional
+  pointsEarned: z.number().min(0).optional(), 
   pointsSpent: z.number().min(0, 'pointsSpent não pode ser negativo'),
   referenceId: z.string().min(1, 'referenceId é obrigatório')
 });
 
-// --- MUDANÇA AQUI ---
-// Definimos sua regra de negócio fora da função
 const PONTOS_POR_REAL = 2;
 
 
@@ -37,23 +32,16 @@ export const recordActivity = async (req: Request, res: Response) => {
     });
   }
 
-  // --- MUDANÇA AQUI ---
-  // Pegamos o 'value' e o 'pointsSpent' da requisição...
   const {
     userId,
     type,
     description,
-    value, // R$ 120000 no seu teste
+    value, 
     pointsSpent,
     referenceId
   } = validatedData;
   
-  // ...E AGORA CALCULAMOS OS PONTOS GANHOS AQUI!
-  // Math.floor() garante que não teremos pontos quebrados (ex: 2.5 pontos)
   const calculatedPointsEarned = Math.floor(value * PONTOS_POR_REAL);
-  // No seu teste: 120000 * 2 = 240000 pontos
-  // --- FIM DA MUDANÇA ---
-
 
   const session = await mongoose.startSession();
 
@@ -68,7 +56,6 @@ export const recordActivity = async (req: Request, res: Response) => {
 
     let totalPointsChange = 0;
     
-    // Processar gastos (continua igual)
     if (pointsSpent > 0) {
       if (userPoints.balance < pointsSpent) {
         throw new Error('Saldo de pontos insuficiente');
@@ -86,33 +73,29 @@ export const recordActivity = async (req: Request, res: Response) => {
       totalPointsChange -= pointsSpent;
     }
 
-    // --- MUDANÇA AQUI ---
-    // Processar ganhos (agora usa a nossa variável calculada)
-    if (calculatedPointsEarned > 0) { // <-- MUDANÇA
+    if (calculatedPointsEarned > 0) { 
       await PointTransaction.create([{
         userId: userId,
         type: 'earn',
-        amount: calculatedPointsEarned, // <-- MUDANÇA
+        amount: calculatedPointsEarned, 
         source: type === 'shop' ? 'shop_purchase' : 'financing_contract',
         referenceId: referenceId,
         description: `Pontos por: ${description}`
       }], { session: session });
 
-      userPoints.balance += calculatedPointsEarned; // <-- MUDANÇA
-      totalPointsChange += calculatedPointsEarned; // <-- MUDANÇA
+      userPoints.balance += calculatedPointsEarned; 
+      totalPointsChange += calculatedPointsEarned; 
     }
 
-    // Criar a Atividade Recente (pega o 'totalPointsChange' atualizado)
     await RecentActivity.create([{
       userId: userId,
       type: type,
       description: description,
       value: value,
-      pointsChange: totalPointsChange, // <-- Esta variável já está correta
+      pointsChange: totalPointsChange, 
       referenceId: referenceId
     }], { session: session });
 
-    // Salvar o saldo final
     await userPoints.save({ session: session });
 
     await session.commitTransaction();
@@ -120,7 +103,7 @@ export const recordActivity = async (req: Request, res: Response) => {
     res.status(201).json({ 
       message: 'Atividade registrada com sucesso (Regra 2x aplicada)',
       newBalance: userPoints.balance,
-      pointsEarned: calculatedPointsEarned // Retorna quanto foi calculado
+      pointsEarned: calculatedPointsEarned 
     });
 
   } catch (error: any) {

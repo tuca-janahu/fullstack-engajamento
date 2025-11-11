@@ -2,7 +2,7 @@ import { Schema, model, Document } from 'mongoose';
 
 export interface IPointTransaction extends Document {
   userId: string;
-  type: 'earn' | 'spend';
+  type_pt: 'earn' | 'spend';
   amount: number;
   source: 'shop_purchase' | 'financing_contract' | 'shop_discount' | 'financing_discount';
   referenceId: string;
@@ -15,13 +15,13 @@ const PointTransactionSchema = new Schema<IPointTransaction>({
     required: true, 
     index: true 
   },
-  type: { 
+  type_pt: { 
     type: String, 
-    enum: ['earn', 'spend'], // 'ganho' ou 'gasto'
+    enum: ['earn', 'spend'],
     required: true 
   },
   amount: { 
-    type: Number, // Sempre armazenar como um valor positivo
+    type: Number,
     required: true 
   },
   source: {
@@ -34,7 +34,6 @@ const PointTransactionSchema = new Schema<IPointTransaction>({
     ],
     required: true
   },
-  // ID da Compra (Loja) ou Contrato (Financiamento)
   referenceId: { 
     type: String, 
     required: true 
