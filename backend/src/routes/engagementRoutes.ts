@@ -11,7 +11,7 @@ router.get('/health', (req: Request, res: Response) => {
 });
 
 // Protegido: Apenas 'cliente' pode acessar
-router.get('/dashboard', authMiddleware(['client']), getDashboardData);
+router.get('/dashboard', authMiddleware(['customer']), getDashboardData);
 
 router.post(
   '/internal/record-activity',
