@@ -3,7 +3,7 @@ import axios, { AxiosError } from 'axios';
 import 'dotenv/config';
 
 // Pega a URL do .env
-const AUTH_SERVICE_URL = process.env.URL_BACkEND_CADASTRO;
+const AUTH_SERVICE_URL = process.env.URL_BACKEND_CADASTRO;
 
 if (!AUTH_SERVICE_URL) {
   throw new Error('Missing environment variable URL_BACKEND_CADASTRO');
