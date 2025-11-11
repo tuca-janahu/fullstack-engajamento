@@ -1,5 +1,4 @@
-// src/models/PointTransaction.ts
-import { Schema, model }...
+import { Schema, model } from 'mongoose';
 
 const PointTransactionSchema = new Schema({
   userId: { type: String, required: true, index: true },

@@ -1,8 +1,13 @@
-// src/middleware/authMiddleware.ts
 import { Request, Response, NextFunction } from 'express';
 import axios from 'axios';
+import 'dotenv/config';
 
-const AUTH_SERVICE_URL = 'https://auth.sua-fintech.com/api/v1/auth/validate';
+// Pega a URL do .env
+const AUTH_SERVICE_URL = process.env.URL_BAKCEND_CADASTRO;
+
+if (!AUTH_SERVICE_URL) {
+  throw new Error('Missing environment variable URL_BAKCEND_CADASTRO');
+}
 
 export const authMiddleware = (roles: string[]) => 
   async (req: Request, res: Response, next: NextFunction) => {
@@ -14,22 +19,20 @@ export const authMiddleware = (roles: string[]) =>
     }
 
     const token = authHeader.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ message: 'Token não fornecido' });
+    }
 
-    // 1. CHAMA O SERVIÇO DE CADASTRO
     const { data: userData } = await axios.post(AUTH_SERVICE_URL, { token });
 
-    // 2. VERIFICA SE O TOKEN É VÁLIDO E TEM A PERMISSÃO
     if (!userData.valid || !roles.includes(userData.role)) {
-      // O requisito de permissionamento pede redirecionamento no frontend,
-      // mas no backend retornamos 403.
       return res.status(403).json({ message: 'Acesso negado' });
     }
 
-    // 3. ANEXA OS DADOS DO USUÁRIO NA REQUISIÇÃO
     req.user = { id: userData.userId, role: userData.role };
     next();
 
   } catch (error) {
-    return res.status(401).json({ message: 'Token inválido' });
+    return res.status(401).json({ message: 'Token inválido ou falha na autenticação' });
   }
 };

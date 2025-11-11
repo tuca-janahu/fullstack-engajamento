@@ -1,5 +1,4 @@
-// src/models/RecentActivity.ts
-import { Schema, model }...
+import { Schema, model } from 'mongoose';
 
 const RecentActivitySchema = new Schema({
   userId: { type: String, required: true, index: true },

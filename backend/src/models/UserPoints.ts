@@ -1,4 +1,4 @@
-import { Schema, model }...
+import { Schema, model } from 'mongoose';
 
 const UserPointsSchema = new Schema({
   userId: { 
