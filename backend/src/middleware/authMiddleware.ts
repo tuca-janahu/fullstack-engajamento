@@ -2,8 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import axios, { AxiosError } from 'axios';
 import 'dotenv/config';
 
-// URL_BAKCEND_CADASTRO deve ser ".../auth/token/introspect" no seu .env
-const AUTH_SERVICE_URL = process.env.URL_BAKCEND_CADASTRO;
+// URL_BACKEND_CADASTRO deve ser ".../auth/token/introspect" no seu .env
+const AUTH_SERVICE_URL = process.env.URL_BACKEND_CADASTRO;
 
 if (!AUTH_SERVICE_URL) {
   throw new Error('Missing environment variable URL_BACKEND_CADASTRO');
