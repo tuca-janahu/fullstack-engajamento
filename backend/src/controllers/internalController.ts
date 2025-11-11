@@ -1,27 +1,32 @@
 import { Request, Response } from 'express';
-import mongoose from 'mongoose'; // <-- Importante para transações
-import { z } from 'zod'; // Para validação
+import mongoose from 'mongoose';
+import { z } from 'zod';
 
-// Nossos 3 models
 import { UserPoints } from '../models/UserPoints';
 import { PointTransaction } from '../models/PointTransaction';
 import { RecentActivity } from '../models/RecentActivity';
 
-// 1. Definimos o "contrato" de dados que esperamos
-// Os outros times DEVEM enviar um body com este formato
+// --- MUDANÇA AQUI ---
+// pointsEarned agora é opcional. Vamos ignorar o que o outro time enviar
+// e vamos calcular com base no 'value'.
 const recordActivitySchema = z.object({
   userId: z.string().min(1, 'userId é obrigatório'),
-  type: z.enum(['shop', 'financing'] as const, "Tipo deve ser 'shop' ou 'financing'"),
+  type: z.enum(['shop', 'financing'] as const, {
+    message: "Tipo deve ser 'shop' ou 'financing'"
+  }),
   description: z.string().min(1, 'description é obrigatória'),
   value: z.number().positive('value (R$) deve ser positivo'),
-  pointsEarned: z.number().min(0, 'pointsEarned não pode ser negativo'),
+  pointsEarned: z.number().min(0).optional(), // <-- MUDANÇA: Tornou-se opcional
   pointsSpent: z.number().min(0, 'pointsSpent não pode ser negativo'),
   referenceId: z.string().min(1, 'referenceId é obrigatório')
 });
 
-// 2. O Controller
+// --- MUDANÇA AQUI ---
+// Definimos sua regra de negócio fora da função
+const PONTOS_POR_REAL = 2;
+
+
 export const recordActivity = async (req: Request, res: Response) => {
-  // 3. Validação com Zod
   let validatedData;
   try {
     validatedData = recordActivitySchema.parse(req.body);
@@ -32,41 +37,42 @@ export const recordActivity = async (req: Request, res: Response) => {
     });
   }
 
+  // --- MUDANÇA AQUI ---
+  // Pegamos o 'value' e o 'pointsSpent' da requisição...
   const {
     userId,
     type,
     description,
-    value,
-    pointsEarned,
+    value, // R$ 120000 no seu teste
     pointsSpent,
     referenceId
   } = validatedData;
+  
+  // ...E AGORA CALCULAMOS OS PONTOS GANHOS AQUI!
+  // Math.floor() garante que não teremos pontos quebrados (ex: 2.5 pontos)
+  const calculatedPointsEarned = Math.floor(value * PONTOS_POR_REAL);
+  // No seu teste: 120000 * 2 = 240000 pontos
+  // --- FIM DA MUDANÇA ---
 
-  // 4. Iniciar uma Sessão do MongoDB para a transação
+
   const session = await mongoose.startSession();
 
   try {
-    // 5. Iniciar a transação
     await session.startTransaction();
 
-    // 6. Pegar (ou criar) o documento de saldo do usuário
-    // 'upsert: true' = crie se não existir
-    // 'new: true' = retorne o documento novo/atualizado
     const userPoints = await UserPoints.findOneAndUpdate(
       { userId: userId },
-      { $setOnInsert: { userId: userId, balance: 0 } }, // Só roda na criação
-      { upsert: true, new: true, session: session } // <-- session é a chave
+      { $setOnInsert: { userId: userId, balance: 0 } },
+      { upsert: true, new: true, session: session }
     );
 
-    // 7. Processar gastos
     let totalPointsChange = 0;
+    
+    // Processar gastos (continua igual)
     if (pointsSpent > 0) {
-      // 7a. Verificar se o usuário tem saldo
       if (userPoints.balance < pointsSpent) {
         throw new Error('Saldo de pontos insuficiente');
       }
-
-      // 7b. Criar o histórico de gasto
       await PointTransaction.create([{
         userId: userId,
         type: 'spend',
@@ -76,64 +82,58 @@ export const recordActivity = async (req: Request, res: Response) => {
         description: `Desconto em: ${description}`
       }], { session: session });
 
-      // 7c. Atualizar saldo e mudança total
       userPoints.balance -= pointsSpent;
       totalPointsChange -= pointsSpent;
     }
 
-    // 8. Processar ganhos
-    if (pointsEarned > 0) {
-      // 8a. Criar o histórico de ganho
+    // --- MUDANÇA AQUI ---
+    // Processar ganhos (agora usa a nossa variável calculada)
+    if (calculatedPointsEarned > 0) { // <-- MUDANÇA
       await PointTransaction.create([{
         userId: userId,
         type: 'earn',
-        amount: pointsEarned,
+        amount: calculatedPointsEarned, // <-- MUDANÇA
         source: type === 'shop' ? 'shop_purchase' : 'financing_contract',
         referenceId: referenceId,
         description: `Pontos por: ${description}`
       }], { session: session });
 
-      // 8b. Atualizar saldo e mudança total
-      userPoints.balance += pointsEarned;
-      totalPointsChange += pointsEarned;
+      userPoints.balance += calculatedPointsEarned; // <-- MUDANÇA
+      totalPointsChange += calculatedPointsEarned; // <-- MUDANÇA
     }
 
-    // 9. Criar a Atividade Recente para o Dashboard
+    // Criar a Atividade Recente (pega o 'totalPointsChange' atualizado)
     await RecentActivity.create([{
       userId: userId,
       type: type,
       description: description,
       value: value,
-      pointsChange: totalPointsChange,
+      pointsChange: totalPointsChange, // <-- Esta variável já está correta
       referenceId: referenceId
     }], { session: session });
 
-    // 10. Salvar o saldo final do usuário
+    // Salvar o saldo final
     await userPoints.save({ session: session });
 
-    // 11. COMMIT! Se tudo deu certo, salve as mudanças no banco
     await session.commitTransaction();
 
     res.status(201).json({ 
-      message: 'Atividade registrada com sucesso',
-      newBalance: userPoints.balance
+      message: 'Atividade registrada com sucesso (Regra 2x aplicada)',
+      newBalance: userPoints.balance,
+      pointsEarned: calculatedPointsEarned // Retorna quanto foi calculado
     });
 
   } catch (error: any) {
-    // 12. ERRO! Desfaz todas as operações
     await session.abortTransaction();
     
     if (error.message === 'Saldo de pontos insuficiente') {
       return res.status(400).json({ message: error.message });
     }
-
     res.status(500).json({ 
       message: 'Erro interno ao processar transação', 
       error: error.message 
     });
-
   } finally {
-    // 13. Feche a sessão, independentemente do resultado
     await session.endSession();
   }
 };
