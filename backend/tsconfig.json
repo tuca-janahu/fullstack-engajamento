@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    /* Configurações Básicas */
+    "target": "es2020",                  // Define para qual versão do JS seu código será compilado
+    "module": "NodeNext",              // <-- Corrigindo o erro original
+    "moduleResolution": "NodeNext",      // <-- Corrigindo o erro original
+    "outDir": "./dist",                  // Onde o JS final será salvo (para produção)
+    "rootDir": "./src",                  // Onde seu código TypeScript está
+
+    /* Compatibilidade */
+    "esModuleInterop": true,             // Permite 'importar' módulos feitos com 'require'
+    "forceConsistentCasingInFileNames": true, // Garante que os nomes de arquivos sejam consistentes
+
+    /* Verificações Estritas */
+    "strict": true,                      // Ativa todas as verificações de tipo estritas
+    "skipLibCheck": true                 // Pula a verificação de tipos dos 'node_modules'
+  },
+  "include": ["src/**/*"] // Diz ao TS para procurar arquivos apenas dentro da pasta 'src'
+}
